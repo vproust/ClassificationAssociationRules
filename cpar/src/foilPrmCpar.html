@@ -1,0 +1,688 @@
+<HTML>
+<HEAD>
+<TITLE>FOIL</TITLE>
+</HEAD><BODY BGCOLOR="white">
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="100%">
+<TR><TD BGCOLOR = BB0000>
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="90%">
+<TR><TD BGCOLOR = 006699>
+<FONT COLOR = "white">
+<CENTER>
+<H1>THE LUCS-KDD IMPLEMENTATIONS OF THE FOIL, PRM AND CPAR ALGORITHMS</H1>
+<HR WIDTH=<50%">
+<BR></CENTER>
+<TABLE ALIGN=right BGCOLOR="white" BORDER=1 CELLPADDING=5>
+<TR><TD>
+<img src="../../../GifFolder/logo115.gif" 
+	alt="Liverpool University">
+</TD></TABLE>
+<P><B><I>Frans Coenen<I></B></P>
+<P><B>Department of Computer Science</B></P>
+<P><B>The University of Liverpool</B></P>
+<P>13 February 2004</P>
+</FONT></TD>
+</TABLE></CENTER>
+</TD></TABLE>
+</CENTER>
+<BR>
+<h2>CONTENTS</h2>
+
+<table BORDER=0 CELLPADDING=0 WIDTH=100%>
+
+<tr><td WIDTH="48%">
+<dl>
+<dt>1. <a HREF = "#introduction">Introduction</a>.</dt>
+<dt>2. <a HREF = "#downloading">Downloading the software</a>.</dt>
+<dl>
+<dt>2.1. <a HREF = "#compiling">Compiling</A>.</dt>
+<dt>2.2. <a HREF = "#documentation">Documentation</A>.</dt>
+</DL>
+</dl>
+</td><td><pre> </pre></td><td>
+<dl>
+<dt>3. <a HREF = "#running">Running the software</a>.</dt>
+<dt>4. <a HREF = "#applications">More detail on application classes</A>.</dt>
+<dt>5. <a HREF = "#algorithms">More detail on algorithms used</A>.</dt>
+<dt>6. <a HREF =" #results">Some results</a>.</dt>
+<dt>7. <a HREF =" #conclusions">Conclusions</a>.</dt>
+</dl>
+</td></table><br><hr><br>
+
+<a NAME =" introduction">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">1. INTRODUCTION</font></h2></td>
+</table><BR>
+
+<P>FOIL (First Order Inductive Learner) is an inductive learning algoprithm for
+generating Cassification Association Rules (CARs) developed by Ross Quinlan and
+Mike Cameron-Jones (Quinlan and Cameron-Jones 1993). This algorithum was later
+further developped by Xiaoxin Yin and Jiawei Han to produce the PRM 
+(Predictive Rule Mining) CAR generation algorithm (Yin and Han 2003). PRM was
+then further developped,  by Xiaoxin Yin and Jiawei Han, to produce CPAR
+(Classification based on Predictive Association Rules).</P>
+
+<P>The set of WWW pages "hanging" from this page describe Java implmentations,
+developped by the <A HREF = "~frans/KDD/">LUCS-KDD research team</A>, of the 
+FOIL, PRM< and CPAR algorithms. The implementations are founded on
+descriptions foun in Yin and Han (2003), and have been used to compare 
+performance with other CARM algorithms.</P>
+ 
+<br><hr><br>
+<a NAME =" downloading">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">2. DOWNLOADING THE SOFTWARE</font></h2></td>
+</table><BR>
+
+<P>There are six source files and a six application files available
+here. The source files are as follows:</P>
+
+<OL>
+<LI><A HREF = "AssocRuleMining.java"><TT>AssocRuleMining.java</TT></A>:
+Set of general CARM (and ARM) utility methods to allow: (i) data input and input
+error checking, (ii) data preprocessing, (iii) manipulation of records (e.g.
+operations such as subset, member, union etc.) and (iv) data and parameter 
+output.
+<LI><A HREF = "CPAR_CARgen.java"><TT>CPAR_CARgen.java</TT></A>: The CPAR
+algorithm.
+<LI><A HREF = "Classification.java"><TT>Classification.java</TT></A>: Set of
+general methods common to FOIL, PRM and CPAR.
+<LI><A HREF = "FOIL_CARgen.java"><TT>FOIL_CARgen.java</TT></A>: The FOIL
+algorithm.
+<LI><A HREF = "PRM_CARgen.java"><TT>PRM_CARgen.java</TT></A>: The PRM 
+algorithm
+<LI><A HREF = "RuleList.java"><TT>RuleList.java</TT></A>: Set of methods the allow creation
+of classifiers and the manipulation (e.g. pruning, ordering, etc.) of 
+classification rule contained in such a classifier. Also contains methods to
+classify records in a given test set.
+</OL>
+
+<P>The source files are arranged in a class hierarchy of the following form:</P>
+
+<CENTER>
+<TABLE BORDER=1><TR><TD>
+<TABLE BORDER=1 CELLPADDING=10><TR><TD>
+<CENTER>
+<PRE>
+                            AssocRuleMining
+                                   |
+                    +--------------+---------------+
+                    |                              |
+               Classification                    RuleList
+	            |
+     +--------------+---------------+
+     |              |               |
+FOIL_CARgen     PRM_CARgen      CPAR_CARgen
+</PRE>
+</CENTER>
+</TD></TABLE></CENTER>
+</TD></TABLE></CENTER><BR>
+
+<P>The applications are of two types:</P>
+
+<OL>
+<LI>Applications that use Ten Cross Vlaidation (TCV) to arrive at an accuracy
+projection for the method.
+<LI>Applications that use a 50:50 split of the input data to produce a training
+and a test set. The training set is used to build a classifier and the test set
+to validate it.
+</OL>
+
+<P>The applications are as follows:</P>
+
+<OL>
+<LI><A HREF = "ClassCPAR_App.java"><TT>ClassCPAR_App.java</TT></A>:
+CPAR algorithm using a 50:50 training/test split of the input data.
+<LI><A HREF = "ClassCPAR_App10.java"><TT>ClassCPAR_App10.java</TT></A>:
+CPAR algorithm using TCV.
+<LI><A HREF = "ClassFOIL_App.java"><TT>ClassFOIL_App.java</TT></A>:
+FOIL algorithm using a 50:50 training/test split of the input data.
+<LI><A HREF = "ClassFOIL_App10.java"><TT>ClassFOIL_App10.java</TT></A>:
+FOIL algorithm using TCV.
+<LI><A HREF = "ClassPRM_App.java"><TT>ClassPRM_App.java</TT></A>:
+PRM algorithm using a 50:50 training/test split of the input data.
+<LI><A HREF = "ClassPRM_App10.java"><TT>ClassPRM_App10.java</TT></A>:
+PRM algorithm using TCV.
+</OL>
+
+<P>There is also a "tar ball" <A HREF = "foilPrmCpar.tgz">foilPrmCpar.tgz</A> 
+that can be downloaded that includes all of the source and application files. 
+It can be unpacked using <TT>tar -zxf foilPrmCpar.tgz</TT>.</P>
+
+<BR>
+<a NAME = "compiling">
+<H3>2.1. Compiling</H3>
+<p>The software has been implemented in Java using the Java2 SDK (Software
+Development Kit) Version 1.4.0, which should therefore make it highly 
+portable. The code does not require any special packages and thus can be 
+compiled using the standard Java compiler:</p>
+
+<pre>
+javac *.java
+</pre>
+
+<BR>
+<a NAME = "documentation">
+<H3>2.2. Documentation</H3>
+
+<P>The code can be documented using <I>Java Doc</I>. First create a directory
+<TT>Documentation</TT> in which to place the resulting HTML pages and then type:</P>
+
+<PRE>
+javadoc -d Documentation/ *.java
+</PRE>
+
+<P>This will produce a hierrachy of WWW pages contained in the <TT>Document</TT>
+directory.</P>
+
+<br><hr><br>
+<a NAME ="running">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">3. RUNNING THE SOFTWARE</font></h2></td>
+</table><BR>
+
+<p>When compiled the software can be invoked in the normal manner using the 
+Java interpreter:</p>
+
+<pre>
+java FILE_NAME
+</pre>
+
+<p>If you are planning to process a very large data set it is a good idea to 
+grab some extra memory. For example:</p>
+
+<pre>
+java -Xms600m -Xmx600m FILE_NAME
+</pre>
+
+<P>The input to the software, in all cases is a (space separated)
+<I>binary valued</I> data set <TT>R</TT>. The set <TT>R</TT>
+comprises a set of <TT>N</TT> records such that each record (<TT>R</TT>)
+comprises a set of <I>attributes</I> and a <I>class</I>. Thus:</P>
+
+<PRE>
+R  = {r | r = {{subset A} + one member of C}}
+</PRE>
+
+<P>Where <TT>A</TT> is the set of available attributes, and <TT>C</TT>
+is the set of available classes. The value <TT>D</TT> is then defined as:
+
+<PRE>
+D = |A| + |C|
+</PRE>
+
+<P>We then say that a particular data set has <TT>D</TT> <I>columns</I> and
+<TT>N</TT> <I>rows</I>. A small example data sets might be as follows:</P>
+
+<PRE>
+1 2 3 6
+1 4 5 7
+1 3 4 6
+1 2 6
+1 2 3 4 5 7
+</PRE>
+
+<P>where, in this case, <TT>A = {1, 2, 3, 4, 5}</TT>, <TT>C = {6, 7}</TT>,
+<TT>D = 7</TT> and <TT>N = 5</TT>. Note that the class is always the last item
+listed in each record. The input file is included using a <TT>-F</TT> flag.</P>
+
+<P>The programs also require information regrding the number of classes.
+This is input using a <TT>-N</TT> flag.</P>
+
+<P>Some example invocations, uisng a discretized/ normalised Pima Indians 
+data set (also <A HREF = "pimaIndians.D42.N768.C2.num">available</A> from this
+site), are given below:</P>
+
+<PRE>
+java ClassFOIL_App -FpimaIndians.D42.N768.C2.num -N2
+java ClassPRM_App10 -FpimaIndians.D42.N768.C2.num -N2
+java ClassCPAR_App10 -N2 -FpimaIndians.D42.N768.C2.num
+</PRE>
+
+<P>(note that the ordering of flags is not significant). The output from each
+application is a classifier plus some diagnostic
+information (run time, number of rules generated etc.).</P>
+
+
+<br><hr><br>
+<a NAME ="applications">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">4. MORE DETAIL ON APPLICATION CLASSES</font></h2></td>
+</table><BR>
+
+<P>FOIL, PRM and CPAR Applications classes all have the following basic form:</P>
+
+<CENTER>
+<TABLE BORDER=1><TR><TD>
+<TABLE BORDER=1 CELLPADDING=10><TR><TD>
+<PRE>
+public class &lt CLASS_NAME &gt  {
+
+    /** Main method */
+
+    public static void main(String[] args) throws IOException {
+
+	// Create instance of class CPAR_CARgen, PRM_CARgen or FOIL_CARgen	
+	// as desired, using the appropriate constructor.
+	&lt OBJECT &gt &lt INSTANCE_NAME &gt = new &lt CONSTRUCTOR &gt ;	
+			
+	// Read data to be mined from file using the inputDataSet() method
+	// found in the AssocRuleMining parent class which is inheritted by
+	// the CPAR_CARgen, PRM_CARgen and FOIL_CARgen classes.
+	&lt INSTANCE_NAME &gt .inputDataSet();
+	
+	// Create training and test data sets. Two options: (1) if requiring
+	// a 50:50 training/test data split use the
+	// createTrainingAndTestDataSets() method , (2) if requiring Ten
+	// Cross Validation (TCV) use the createTenthsDataSets() method. Both
+	// are contained in the Classification class (and are inheritted by
+	// the CPAR_CARgen, PRM_CARgen and FOIL_CARgen classes).
+	&lt INSTANCE_NAME &gt .createTrainingAndTestDataSets();
+	//  or
+	&lt INSTANCE_NAME &gt .newClassification.createTenthsDataSets();
+	
+	// Mine data and generate CARs using a call to either: (1) the
+	// startClassification() if not requiring TCV, (2) commenceTCV()
+	// if requiring TCV, or (3) commenceTCVwithOutput() if (for dignostic
+	// or monitoring purposes) output is required during the TCV process.
+	// Each of these methods returns an accuracy value which van be
+	// "captured" and output
+	&lt INSTANCE_NAME &gt .startClassification();
+	&lt INSTANCE_NAME &gt .commenceTCV();
+	//  or
+	&lt INSTANCE_NAME &gt .commenceTCVwithOutput();
+	
+	// Output as deired using the many output methods that are available
+	// (see below for further details)
+	
+	// End
+	System.exit(0);
+	}
+</PRE>
+</TD></TABLE>
+</TD></TABLE></CENTER><BR>
+
+<P>Some output is always generated such as: (1) the input parameters and start
+settings and (2) "mile stones" during processing.
+Additional output statements can be included in application classes.
+The availanle additional output options are as follows:</P>
+
+<OL>
+<LI><TT>outputDataArray()</TT>: Outputs the input data.
+<LI><TT>outputDataArraySize()</TT>: Outputs the size of the input data (number
+of records and columns, number of elements and overall density).
+<LI><TT>outputDuration(double time1, double time2)</TT>: The elapswed time,
+in seconds between time1 and time2. Typically used to measure processing time:
+<PRE>
+double time1 = (double) System.currentTimeMillis();
+
+// Program statements
+
+&LT INSTANCE_NAME &gt .outputDuration(time1,
+				(double) System.currentTimeMillis());
+</PRE>
+<LI><TT>outputNumRules()</TT>: The number of rules in the resulting classifier
+<LI><TT>outputRules()</TT>: The classifier expressed as a set of rules each with
+its expected Laplace accuracy value.
+</OL>
+
+<P>Note that the first three of the above output methods are <I>instance
+methods</I> contained
+in the <TT>AssocRuleMining</TT> class which are therefore inheritted by
+the <TT>CPAR_CARgen</TT>, <TT>PRM_CARgen</TT> and <TT>FOIL_CARgen</TT> classes.
+The last two of the above are <I>instance
+methods</I> of the <TT>RuleList</TT> class and thus must be called using an
+instance of that class. An instance of the  <TT>RuleList</TT> class is created
+during processing and may be accessed using the
+<TT>getCurrentRuleListObject()</TT>
+public method found in the <TT>Classification</TT> class. Thus, for example,
+the <TT>outputRules()</TT> method would be invoked as follows:</P>
+
+<PRE>
+&LT INSTANCE_NAME &gt .getCurrentRuleListObject().outputRules();
+</PRE>
+
+<P>When using TCV it makes little sence to use the  <TT>outputNumRules()</TT>
+and <TT>outputRules()</TT> methods as this will only serve to output the last
+10th of the TCV process. If output is required then the
+<TT>commenceTCVwithOutput()</TT> method should be used.</P>
+
+<br><hr><br>
+<a NAME ="algorithms">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">5. MORE DETAIL ON ALGORITHMS USED</font></h2></td>
+</table><BR>
+
+<P>More information on the:</P>
+
+<OL>
+<LI><A HREF = "foil.html">LUCS-KDD FOIL implementation</A>,
+<LI><A HREF = "prm.html">LUCS-KDD PRM implementation</A> and
+<LI><A HREF = "cpar.html">LUCS-KDD CPAR implementation</A>.
+</OL>
+
+<P>is available.</P>
+
+<br><hr><br>
+<a NAME ="results">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">6. SOME RESULTS</font></h2></td>
+</table><BR>
+
+<P>The following tables give some performance indicators where by the
+algorithms can be compared. The figures have been obtianed using a number of 
+data sets taken from the <A HREF = "http://www.ics.uci.edu/~mlearn/MLRepository.html">
+UCI Machime learning Repository</A>
+(Blake and Merz 1998) wehich have been discretised/ normalised using the 
+<A HREF = "../LUCS-KDD-DN/lucs-kdd_DN.html">LUCS KDD DN</A> software system. In each case continuous
+attributes have been discretised into five sub-ranges. It would have been 
+desirable to use the same datasets as those used by Xiaoxin Yin and Jiawei Han,
+however it was discovered (January 2003) that many of these data sets were 
+no longer available in the UCI repository. In two cases (<TT>auto</TT> and
+<TT>heart</TT>) the parameters for the data sets are not identical to those
+reported in Yin and Han (2003) whose paper actually refers back to an earlier
+paper by Wenmin Li, Jiawei Han and Jiam Pei (Li et al. 2001). A number of
+further data sets are included below, selected because of their size (The
+data sets used in Yin and Han (2003) are all quite small). In each case the name of the 
+data sets inlcudes: the number of attributes after dsicretisation (<TT>D</TT>),
+the number of records (<TT>N</TT>) and the bumber of classes (<TT>C</TT>)</P>
+
+<P>The parameters for the individual algorithms (same as those reported in
+Yin and Han 2003) are as follows:</A>
+
+<OL>
+<LI><B>FOIL</B>: Maximum of <TT>3</TT> attributes in the antecedent of a 
+rule.
+<LI><B>PRM</B>: Minimum gain threshold = <TT>0.7</TT>, total weight 
+threshold = <TT>0.05</TT>, and decay factor = <TT>2/3</TT>.
+<LI><B>CPAR</B>: Minimum gain threshold = <TT>0.7</TT>, total weight 
+threshold = <TT>0.05</TT>, decay factor = <TT>2/3</TT>.
+</OL>
+
+<P>Note also that the best <TT>5</TT> rules are used, in each case, when
+classifying a test record, and that for CPAR a similarity
+ratio of <TT>1:0.99</TT> was used.</P>
+
+<P>In Table 1 a set of accuracy values are presented. The table includes reported CPAR 
+accuracies (taken from Yin and Han 2003). It is worth commenting that 
+in many cases, the reported CPAR accuracies are better than those produced 
+by the LUCS-KDD implementation. In some cases the difference is negligable, in other it
+is significant (for example in the cases of the "glass" and and "tic-tac-toe" data sets). 
+In the case of the "ionosphere", "zoo" and "pima indians" data sets the LUCS-KDD implementation
+of CPAR performs better than the
+reported version. There are a number of reasons for the differences between the results:</P>
+
+<OL>
+<LI>In the case of the "heart" and "auto" data sets it is clear from the iterature 
+that the versions of the data sets used here arew not identical to those used by
+Xiaoxin Yin and Jiawei Han, thus the differencec is not remarkable.
+<LI>The LUCS-KDD research team had no infortmation as to the nature of the discretisation used,
+in particularly the number of ranges used to discretise continuous attributes.
+It is clear from the avialbale literature the data sets used by Xiaoxin Yin and Jiawei Han were 
+the same as 
+as those used to evaluate CMAR (Li et al. 2001), which in turn were the same as those used 
+to evaluate CBA (Bing et al. 1998). According to Liu Bing et al. the data sets used to evaluate CBA 
+were discretized using software available from the MLC++ machine learning library, however no 
+information is provided detailing this discretisation. The data sets used here have been discretyised using the
+<A HREF = "../LUCS-KDD-DN/lucs-kdd_DN.html">LUCS-KDD DN software</A> available at:
+
+<BR><CENTER> 
+<TT>http://www.csc.liv.ac.uk/~frans/KDD/Software/LUCS-KDD-DN</TT>. 
+</CENTER><BR>
+<LI>In the case of the data sets used to evaluate CMAR, 
+Wenmin Li et al. reported that they used "C4.5's shuffle utility to shuffle the data sets". However,  
+it is not clear if this was also used by Liu Bing et al. or by Xiaoxin Yin and Jiawei Han. Whatever the
+case this has not been applied to the data sets used here. 
+<LI>Many of the data sets used to evaluate the LUCS-KDD implementations of FOIL, PRM
+and CPAR which were also used by Xiaoxin Yin and Jiawei Han are small, i.e. with the exception of "Led-7"
+less than 1000 records, in some cases ("hepatitus", "iris", "wine" and "zoo") less than 200 records. This means
+that, when using TCV, the test set may comprise only a few 10s of records and therefore we should expect 
+differences of a few percentage points either way. 
+</OL>
+
+<CENTER>
+<TABLE BORDER=1 CELLPADDING=1>
+<TR><TH>DATA</TH><TH>FOIL</TH><TH>PRM</TH><TH>CPAR</TH><TH>Reported CPAR</TH>
+<TR><TH>adult.D131.N48842.C2</TH>
+<TD>82.5</TD><TD>76.7</TD><TD>76.7</TD><TD>_</TD>
+<TR><TH>anneal.D106.N798.C6</TH>
+<TD>96.9</TD><TD>89.2</TD><TD>90.2</TD><TD>98.4</TD>
+<TR><TH>auto.D142.N205.C7<SUP>a</SUP></TH>
+<TD>46.1</TD><TD>39.9</TD><TD>48.0</TD><TD>82.0</TD>
+<TR><TH>breast.D48.N699.C2</TH>
+<TD>94.4</TD><TD>94.8</TD><TD>94.8</TD><TD>96.0</TD>
+<TR><TH>chessKRvK.D66.N28056.C18</TH>
+<TD>42.6</TD><TD>32.9</TD><TD>32.8</TD><TD>-</TD>
+<TR><TH>connect4.D129.N67557.C3</TH>
+<TD>65.7</TD><TD>57.8</TD><TD>54.3</TD><TD>-</TD>
+<TR><TH>glass.D52.N214.C7</TH>
+<TD>49.3</TD><TD>47.0</TD><TD>48.0</TD><TD>74.4</TD>
+<TR><TH>heart.D53.N303.C5<SUP>b</SUP></TH>
+<TD>57.4</TD><TD>56.7</TD><TD>51.1</TD><TD>82.6</TD>
+<TR><TH>hepatitus.D58.N155.C2</TH>
+<TD>77.5</TD><TD>76.5</TD><TD>76.5</TD><TD>79.4</TD>
+<TR><TH>horseColic.D94.D368.C2</TH>
+<TD>83.5</TD><TD>82.0</TD><TD>82.3</TD><TD>84.2</TD>
+<TR><TH>ionosphere.D104.N351.C2</TH>
+<TD>89.5</TD><TD>93.2</TD><TD>92.9</TD><TD>92.6</TD>
+<TR><TH>iris.D23.N150.C3</TH>
+<TD>94.0</TD><TD>94.7</TD><TD>94.7</TD><TD>94.7</TD>
+<TR><TH>led7.D24.N3200.C10</TH>
+<TD>62.3</TD><TD>71.2</TD><TD>71.2</TD><TD>73.6</TD>
+<TR><TH>letRecog.D106.N20000.C26</TH>
+<TD>57.5</TD><TD>60.6</TD><TD>59.9</TD><TD>-</TD>
+<TR><TH>mushroom.D127.N8124.C2</TH>
+<TD>99.5</TD><TD>98.8</TD><TD>98.8</TD><TD>-</TD>
+<TR><TH>nursery.D32.N12960.C5</TH>
+<TD>91.3</TD><TD>79.4</TD><TD>78.5</TD><TD>-</TD>
+<TR><TH>pageBlocks.D55.N5473.C5</TH>
+<TD>91.6</TD><TD>80.7</TD><TD>76.2</TD><TD>-</TD>
+<TR><TH>penDigits.D90.N10992.C10</TH>
+<TD>88.0</TD><TD>84.1</TD><TD>83.0</TD><TD>-</TD>
+<TR><TH>pimaIndians.D42.N768.C2</TH>
+<TD>73.8</TD><TD>76.2</TD><TD>75.6</TD><TD>73.8</TD>
+<TR><TH>ticTacToe.D29.N958.C2</TH>
+<TD>96.0</TD><TD>70.0</TD><TD>72.2</TD><TD>98.6</TD>
+<TR><TH>waveform.D108.N5000.C3</TH>
+<TD>75.6</TD><TD>75.7</TD><TD>75.4</TD><TD>80.9</TD>
+<TR><TH>wine.D68.N178.C3</TH>
+<TD>86.4</TD><TD>92.5</TD><TD>92.5</TD><TD>95.5</TD>
+<TR><TH>zoo.D43.N101.C7</TH>
+<TD>96.0</TD><TD>92.0</TD><TD>96.0</TD><TD>95.1</TD>
+</TABLE>
+<P><B>Table 1</B>: <I>Comparison of accuracy of FOIL, PRM, 
+CPAR and Reported CPAR produced using Ten Cross Vlaidation (TCV).</I>
+<FONT SIZE=-1><SUP>a</SUP> CPAR "auto" data set, prior to discrtetisation has 25 
+attributes, while only 24 were identified for the test set used here. 
+<SUP>b</SUP> CPAR "hearty" data sets has 270 records and 2 classes!</FONT></P>
+</CENTER>
+
+<P>In Table 2 a set of execution times are presented. The results support 
+those reported by Xiaoxin Yin and Jiawei Han in that CPAR is significantly 
+faster than FOIL. The table also illustrates that for large datasets all 
+three algorithms require significant amounts of processing time. </P>
+ 
+<CENTER>
+<TABLE BORDER=1 CELLPADDING=1>
+<TR><TH>DATA</TH><TH>FOIL</TH><TH>PRM</TH><TH>CPAR
+<TR><TH>adult.D131.N48842.C2</TH>
+<TD>10251.0</TD><TD>348.6</TD><TD>809.0</TD>
+<TR><TH>anneal.D106.N798.C6</TH>
+<TD>3.0</TD><TD>1.0</TD><TD>1.8</TD>
+<TR><TH>auto.D142.N205.C7</TH>
+<TD>3.4</TD><TD>0.6</TD><TD>1.2</TD>
+<TR><TH>breast.D48.N699.C2</TH>
+<TD>1.5</TD><TD>0.4</TD><TD>0.7</TD>
+<TR><TH>chessKRvK.D66.N28056.C18</TH>
+<TD>10122.8</TD><TD>1005.1</TD><TD>1736.0</TD>
+<TR><TH>connect4.D129.N67557.C3</TH>
+<TD>35572.5</TD><TD>7292.0</TD><TD>24047.1</TD>
+<TR><TH>glass.D52.N214.C7</TH>
+<TD>0.8</TD><TD>0.3</TD><TD>0.6</TD>
+<TR><TH>heart.D53.N303.C5</TH>
+<TD>2.3</TD><TD>0.5</TD><TD>1.0</TD>
+<TR><TH>hepatitus.D58.N155.C2</TH>
+<TD>0.6</TD><TD>0.2</TD><TD>0.3</TD>
+<TR><TH>horseColic.D94.D368.C2</TH>
+<TD>5.0</TD><TD>0.3</TD><TD>0.6</TD>
+<TR><TH>ionosphere.D104.N351.C2</TH>
+<TD>5.8</TD><TD>0.6</TD><TD>1.1</TD>
+<TR><TH>iris.D23.N150.C3</TH>
+<TD>0.1</TD><TD>0.1</TD><TD>0.2</TD>
+<TR><TH>led7.D24.N3200.C10</TH>
+<TD>11.5</TD><TD>3.1</TD><TD>5.7</TD>
+<TR><TH>letRecog.D106.N20000.C26</TH>
+<TD>4365.6</TD><TD>430.7</TD><TD>764.0</TD>
+<TR><TH>mushroom.D127.N8124.C2</TH>
+<TD>38.3</TD><TD>9.6</TD><TD>15.4</TD>
+<TR><TH>nursery.D32.N12960.C5</TH>
+<TD>73.1</TD><TD>27.8</TD><TD>51.7</TD>
+<TR><TH>pageBlocks.D55.N5473.C5</TH>
+<TD>43.1</TD><TD>8.6</TD><TD>15.5</TD>
+<TR><TH>penDigits.D90.N10992.C10</TH>
+<TD>821.1</TD><TD>55.4</TD><TD>101.9</TD>
+<TR><TH>pimaIndians.D42.N768.C2</TH>
+<TD>3.8</TD><TD>0.5</TD><TD>1.0</TD>
+<TR><TH>ticTacToe.D29.N958.C2</TH>
+<TD>1.6</TD><TD>0.3</TD><TD>0.6</TD>
+<TR><TH>waveform.D108.N5000.C3</TH>
+<TD>295.3</TD><TD>20.3</TD><TD>38.1</TD>
+<TR><TH>wine.D68.N178.C3</TH>
+<TD>0.5</TD><TD>0.2</TD><TD>0.3</TD>
+<TR><TH>zoo.D43.N101.C7</TH>
+<TD>0.2</TD><TD>0.1</TD><TD>0.2</TD>
+</TABLE>
+<P><B>Table 2</B>: <I>Comparison of execution times for FOIL, PRM, 
+and CPAR.</I></P>
+</CENTER>
+
+<P>Finally Table 3 lsits the number of rules geneerated in each case by each of the three approaches.
+From the table ir can be seen that CPAR does not necesserily produce more rules than FOIL (although
+we might expect it to).</P>
+
+<CENTER>
+<TABLE BORDER=1 CELLPADDING=1>
+<TR><TH>DATA</TH><TH>FOIL</TH><TH>PRM</TH><TH>CPAR</TH>
+<TR><TH>adult.D131.N48842.C2</TH>
+<TD>331.8</TD><TD>180.5</TD><TD>183.1</TD>
+<TR><TH>anneal.D106.N798.C6</TH>
+<TD>41.4</TD><TD>33.7</TD><TD>34.0</TD>
+<TR><TH>auto.D142.N205.C7</TH>
+<TD>47.1</TD><TD>47.5</TD><TD>76.3</TD>
+<TR><TH>breast.D48.N699.C2</TH>
+<TD>34.6</TD><TD>16.3</TD><TD>16.0</TD>
+<TR><TH>chessKRvK.D66.N28056.C18</TH>
+<TD>1116.7</TD><TD>1442.0</TD><TD>1504.8</TD>
+<TR><TH>connect4.D129.N67557.C3</TH>
+<TD>285.8</TD><TD>813.8</TD><TD>816.1</TD>
+<TR><TH>glass.D52.N214.C7</TH>
+<TD>45.0</TD><TD>35.3</TD><TD>39.3</TD>
+<TR><TH>heart.D53.N303.C5</TH>
+<TD>59.0</TD><TD>45.6</TD><TD>53.2</TD>
+<TR><TH>hepatitus.D58.N155.C2</TH>
+<TD>24.1</TD><TD>13.2</TD><TD>14.4</TD>
+<TR><TH>horseColic.D94.D368.C2</TH>
+<TD>67.9</TD><TD>18.1</TD><TD>18.4</TD>
+<TR><TH>ionosphere.D104.N351.C2</TH>
+<TD>29.6</TD><TD>24.3</TD><TD>26.7</TD>
+<TR><TH>iris.D23.N150.C3</TH>
+<TD>13.6</TD><TD>10.9</TD><TD>10.9</TD>
+<TR><TH>led7.D24.N3200.C10</TH>
+<TD>80.6</TD><TD>31.3</TD><TD>31.4</TD>
+<TR><TH>letRecog.D106.N20000.C26</TH>
+<TD>560.9</TD><TD>590.2</TD><TD>643.0</TD>
+<TR><TH>mushroom.D127.N8124.C2</TH>
+<TD>16.2</TD><TD>23.5</TD><TD>30.8</TD>
+<TR><TH>nursery.D32.N12960.C5</TH>
+<TD>57.4</TD><TD>77.8</TD><TD>83.6</TD>
+<TR><TH>pageBlocks.D55.N5473.C5</TH>
+<TD>123.1</TD><TD>53.3</TD><TD>56.2</TD>
+<TR><TH>penDigits.D90.N10992.C10</TH>
+<TD>204.6</TD><TD>153.4</TD><TD>166.9</TD>
+<TR><TH>pimaIndians.D42.N768.C2</TH>
+<TD>75.9</TD><TD>24.0</TD><TD>23.1</TD>
+<TR><TH>ticTacToe.D29.N958.C2</TH>
+<TD>24.0</TD><TD>10.6</TD><TD>11.7</TD>
+<TR><TH>waveform.D108.N5000.C3</TH>
+<TD>159.7</TD><TD>110.8</TD><TD>114.3</TD>
+<TR><TH>wine.D68.N178.C3</TH>
+<TD>18.3</TD><TD>17.7</TD><TD>18.2</TD>
+<TR><TH>zoo.D43.N101.C7</TH>
+<TD>10.1</TD><TD>14.8</TD><TD>18.9</TD>
+</TABLE>
+
+<P><B>Table 3</B>: <I>Comparison of number of rules generated  of CMAR, FOIL, PRM, 
+CPAR, Reported CPAR, Apriori-TFP with and without  Hill Climbing, and Hill
+Climbing+.</I></P></CENTER>
+
+<br><hr><br>
+<A name = "conclusions">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">7. CONCLUSSIONS</font></h2></td>
+</table> <BR>
+
+<P>The LUCS-KDD implementations of FOIL, PRM and CPAR described here
+have been use successfully by the LUCS-KDD reseach group to contrast and 
+compare various CARM algorithms and techniques. The software is available for 
+free, however the author 
+would appreciate appropriate acknowledgement. The following reference format 
+for referring to the FOIL, PRm and CPAR implementations aresuggested:</P>
+
+<OL>
+<LI>Coenen, F. (2004), <I>LUCS-KDD implementations of FOIL
+(First Order Inductive Learner)</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/foil.html,
+Department of Computer Science, The University of Liverpool, UK.
+<LI>Coenen, F. (2004), <I>LUCS-KDD implementations of PRM
+(Predictive Rule Mining)</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/prm.html,
+Department of Computer Science, The University of Liverpool, UK.
+<LI>Coenen, F. (2004), <I>LUCS-KDD implementations of CPR
+(Classification based on Predictive Association Rules)</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/cpar.html,
+Department of Computer Science, The University of Liverpool, UK.
+</OL>
+
+<P>Should you wish to refer to this WWW page the following reference format is 
+suggested.</P>
+
+<P>Coenen, F. (2004), <I>LUCS-KDD 
+implementations of the FOIL, PTM and CPAR algorithms</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/,
+Department of Computer Science, The University of Liverpool, UK.</P>
+</P>
+
+<P>Should you discover any "bugs" or other problems within the software (or this 
+documentation), do not hesitate to contact 
+the author.</P>
+
+<br><hr><br>
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">REFERENCES</font></h2></td>
+</table> <BR>
+
+<ol>
+<LI> Bing, L., Hse, W and Ma, Y. (1998).
+<I>Integrating Classification and association Rule Mining.</I>
+Proc. KDD-98.
+<li> Blake, C.L. and Merz, C.J. (1998). 
+<i>UCI Repository of machine learning databases</i>
+http://www.ics.uci.edu/~mlearn/MLRepository.html, 
+Irvine, CA: University of California, Department of Information and 
+Computer Science.
+<LI>Li W., Han, J. and Pei, J. (2001).
+<I>CMAR: Accurate and Efficient Classification Based on Multiple 
+Class-Association Rules.</I> 
+Proc ICDM 2001, pp369-376.
+<LI>Quinlan, J. R. and Cameron-Jones, R. M. (1993).
+<I>FOIL: A Midterm Report.</I>
+Proc. ECML, Vienna, Austria, pp3-20.
+<LI>Yin, X. and Han, J. (2003).
+<I>CPAR: Classification based on Predictive Association Rules.<I>
+Proc. SIAM Int. Conf. on Data Mining (SDM'03), San Fransisco, CA, pp. 331-335.</ol>
+
+<br><hr><br>
+<p>Created and maintained by
+<a HREF=http://www.csc.liv.ac.uk/~frans/>Frans Coenen</a>.
+Last updated 17 March 2004
+</body>
+</html>

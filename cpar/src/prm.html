@@ -1,0 +1,759 @@
+<HTML>
+<HEAD>
+<TITLE>PRM</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="100%">
+<TR><TD BGCOLOR = BB0000>
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="90%">
+<TR><TD BGCOLOR = 006699>
+<FONT COLOR = "white">
+<CENTER>
+<H1>THE LUCS-KDD IMPLEMENTATIONS OF PRM (PREDICTIVE RULE MINING)</H1>
+<HR WIDTH=<50%">
+<BR></CENTER>
+<TABLE ALIGN=right BGCOLOR="white" BORDER=1 CELLPADDING=5>
+<TR><TD>
+<img src="../../../GifFolder/logo115.gif" 
+	alt="Liverpool University">
+</TD></TABLE>
+<P><B><I>Frans Coenen<I></B></P>
+<P><B>Department of Computer Science</B></P>
+<P><B>The University of Liverpool</B></P>
+<P>15 February 2004</P>
+</FONT></TD>
+</TABLE></CENTER>
+</TD></TABLE>
+</CENTER>
+
+<P><B>DISCLAIMER!</B> The following description of the PRM algorithm is that
+implemented by the author of this WWW page, i.e. it may not be identical
+to that reported in Yin and Han (2003), but certainly displays all the
+"salient" features of the PRM algorithm.</P>
+
+<H2>CONTENTS</H2>
+
+<TABLE BORDER=0 CELLPADDING=0 WIDTH=100%>
+<TR><TD WIDTH="48%">
+<DL>
+<DT>1. <A HREF = "#overview">Overview of PRM algorithm</A>.</DT>
+<DT>2. <A HREF = "#pruning">Rule pruning</A>.</DT>
+</DL>
+</TD><TD><PRE> </PRE></TD><TD>
+<DL>
+<DT>3. <A HREF = "#testing">Testing</A>.</DT>
+<DT>4. <A HREF = "#example">Worked Example</A>.</DT>
+<DT>5. <a HREF =" #conclusions">Conclusions</A>.</DT>
+</DL>
+</TD></TABLE>
+<BR>
+
+<P><B>NOTE:</B> The description given here should be read in the context of the
+<A HREF = "foil.html">LUCS-KDD implementation of the FOIL</A> (First Order
+Inductive Learner) algorithm developed by Quinlan and Cameron-Jones.</P>
+
+<BR><HR><BR>
+<A NAME = "overview">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">1. OVERVIEW OF PRM ALGORITHM</font></H2></TD>
+</TABLE>
+<P>The PRM (Predictive Rule Mining) algorithm 
+(Xiaoxin Yin and Jiawei Han 2003) is an extension of FOIL
+(Quinlan and Cameron-Jones 1993). The enhancement are as follows:</P>
+
+<OL>
+<LI>Instead of removing records from the <I>positive examples array</I>
+<TT>P</TT> once a rule has been derived, the records in <TT>P</TT> have a
+weighting associated with them (number between <TT>0.0</TT> and <TT>1.0</TT>)
+which is reduced by a <I>decay factor</I>. Records are therefore never removed
+from <TT>P</TT>, but instead <TT>P</TT> is processed until the total weight 
+drops below some user specified Total Weight Threshold (TWT). Thus, whereas
+FOIL generates a small number of rules in that each record in the training
+set may be covered by only one rule in the classifier, PRM will usually 
+generate more than one rule for each record in the training set.
+<LI>Gain values are calculated using the total weightings in the positive and
+negative example sets instead of simply counting up the number of records in the
+example sets.
+<LI>To reduce the overhead of repeatedly passing through the example sets to
+calculate the total weighting (to be used, in turn, to calculate the gains
+associated with each attribute) PRM uses a "PN array" in which to store the total positive and negative
+weightings associated with each attribute were that attribute to be included in
+the current rule.
+<LI>PRM does not enforce a maximum on the number of attributes that can be
+included in a rule antecedent (unlike FOIL).
+</OL>
+
+<P>The LUCS-KDD implementation of PRM has the additional features that 
+instead of representing the example sets as 2-D arrays (as in the LUCS-KDD FOIL
+implementation) the example arrays are represented as arrays of structures
+(<TT>ExamplesStruct</TT>) with two
+fields: (1) the record (i.e. an attribute list), and (2) the associated
+current <I>weighting</I> for the record.</P>
+
+<P>Like FOIL, PRM takes as input a (space separated) <I>binary valued</I> data
+set <TT>R</TT> and produces a set of CARs. The resulting classifier
+by the LUCS-KDD PRM algorithm comprises a linked-list of rules ordered 
+according to Laplace accuracy (Clark and Boswell 1991) of individual rules.</P>
+
+<P>The PRM algorithm commences by, for each class, producing
+two global arrays of <TT>ExamplesStruct</TT> structures
+representing the <I>positive</I> (<TT>P</TT>) and <I>negative</I> (<TT>N</TT>)
+example sets. Like the LUCS-KDD implementation of FOIL, The PRM implementation
+also makes use of an Attribute array <TT>A</TT>.<P>
+
+<P>Again, rules are built up by repeatedly adding an attribute to the antecedent
+of a current rule (commencing with an empty antecedent) according to the
+<I>gain</I> measure (also used in FOIL). The LUCS-KDD implementation of PRM
+can broadly be described in Table 1.</P>
+
+<CENTER><TABLE BORDER=1 CELLPADDING="10"><TR><TD>
+<PRE>
+method: startPRM
+Parameters: none
+Global access to: R, C
+----------------------------------------------
+
+generate an empty global attributes array A
+
+For each c in C
+    generate global P and N example arrays
+    generate global PN array
+    determine minimum total Weight threshold
+
+    while (total weight P > minimum total Weight threshold)
+	A' <-- A, N' <-- N, P' <-- P, PN' <-- PN
+	if no attributes exist with weightings that can
+			produce a gain above minimum break
+	prmGeneration({},c)
+    end loop
+end loop
+</PRE>
+</TD></TABLE>
+<P><B>Table 1</B>: <I>The</I> <TT>startPRM</TT> <I>method.</I></P>
+</CENTER>
+
+<P>The <TT>prmGeneration/2</TT> procedure repeatedly adds attributes to the
+antecedent of a proposed rule until either:<P>
+
+<OL type="i">
+<LI>There are no more attributes to add.
+<LI>The effect of adding another attribute has no positive influence on the
+classifier (this is measured in terms of <I>gain</I>).
+</OL>
+
+<P>The procedure is recursive and has two argument: the antecedent so
+far and the class. The procedure is as described in Table 2.</P>
+
+<CENTER><TABLE BORDER=1 CELLPADDING="10"><TR><TD>
+<PRE>
+method: prmGenerastion/2
+Parameters: parameters ante (antecedent so far) and
+	cons (consequent) for current rule.
+Global access to: A, A', N, N', P, P', PN, PN'
+----------------------------------------------
+
+for each a in A
+    if (a not in antecedent<SUP>1</SUP>) calculated gain using
+    	       information in PN array and add to attribute array
+end loop
+i = "available" column in A with best gain
+if (A[i][0] <= MIN_BEST_GAIN) 
+    add antecedent->c to rule list
+    for all records in P reduce weighting by decay factor
+     		and adjust PN array accordingly
+    return
+
+ante = ante union i
+A'[i][1]=1 (i.e. column i is no longer "available")
+remove records in P' and N' which DO NOT contain attribute ante
+		and adjust PN array accordingly
+
+if (N' <= {}) {
+    add antecedent->c to rule list
+    for all records in P reduce weighting by decay factor
+     		and adjust PN array accordingly
+    return
+else prmGeneration(antecedent,c)
+</PRE>
+</TD></TABLE>
+<P><B>Table 2</B>: <I>The</I> <TT>prmGenerastion</TT> <I>method.</I></P>
+<P><FONT SIZE="-1">1. An attribute is not in the antecedent if the appropriate 
+cell in the attributes array  has the value <TT>0</TT>.</FONT></P>
+</CENTER>
+
+<P>In their reported experiments Xiaoxin Yin and Jiawei Han used a 
+<TT>MIN_BEST_GAIN</TT> of <TT>0.7</TT>, and a decay factor of <TT>1/3</TT>. 
+Using this decay factor new weightings are calculated thus:</P>
+
+<PRE>
+newWeighting = oldWeighting*decayFactor
+</PRE>
+
+<P>Gain is then calculated as follows:</P>
+
+<PRE>
+WP  = totalWeight(P)
+WN  = totalWeight(N)
+WP' = totalWeight(P')
+WN' = totalWeight(N')
+gain(a) = WP' (log(WP'/WP'+PN') - log(WP/WP+PN))
+</PRE> 
+
+<P>The Minimum Weight Threshold (TWT) for <TT>P</TT> is calculated by 
+multiplying the start weight of <TT>P</TT> by the <TT>TOTAL_WEIGHT_FACTOR</TT> 
+which. Xiaoxin Yin and Jiawei Han used a <TT>TOTAL_WEIGHT_FACTOR</TT> of 0.05
+in their reported experiments.</P>
+
+<BR><HR><BR>
+<A NAME = "pruning">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">2. RULE PRUNING</font></H2></TD>
+</TABLE><BR>
+
+<P>It is possible, 
+using PRM, to generate two or more rules with identical antecedents 
+and consequents. This is because records are not removed from the N and P 
+lists once a rule that satisfies them has been found, but instead these 
+records simply have their weughting reduced. This reduced weighting forms 
+part of the algorithm to calculate gains, however it is still possible for 
+the same attributes to be selected to form the antecedent of a rule because 
+these attributes (despite the reduce weighting) still produce the best 
+gain. Eventually the weighting for the effected records is reduced so far 
+that the attributes do not produce a best gain and are therefore not 
+selected. Where this occurs the rules with the lower accuracy are removed 
+from the rule list. Where this occurs the rules with the lower accuracy are 
+removed from the rule list.</P>
+
+<BR><HR><BR>
+<A NAME = "testing">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">3. TESTING</font></H2></TD>
+</TABLE><BR>
+
+<P>During testing, for each record in the test sets (as recommended in Yin and
+Han 2003) the record is classified using the following procedure:</P>
+
+<OL>
+<LI>Obtain all rules whose antecedent is a subset of the given record.
+<LI>Select the best <TT>K</TT> rules for each class according to their Laplace
+accuracy. In experiments <TT>K</TT> was set to <TT>5</TT>).
+<LI>Determine the average expected accuracy over the selected rules for each
+class
+<LI>Select the class with the best average expected accuracy.
+</OL>
+
+<BR><HR><BR>
+<A NAME = "example">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">4. WORKED EXAMPLE</font></H2></TD>
+</TABLE>
+
+<TABLE>
+<TR><TD>
+<FONT SIZE=-1>
+<P>given the following data set (first 15 lines from the Pima Indian set):</P>
+
+<PRE>
+2 9 13 17 21 28 32 38 42 
+1 8 13 17 21 27 31 36 41 
+3 10 13 16 21 27 32 36 42 
+1 8 13 17 21 28 31 36 41 
+1 9 12 17 21 29 35 37 42 
+2 8 14 16 21 27 31 36 41 
+1 7 13 17 21 28 31 36 42 
+3 8 11 16 21 28 31 36 41 
+1 10 13 18 24 28 31 38 42 
+3 9 14 16 21 26 31 38 42 
+2 8 14 16 21 28 31 36 41 
+3 10 14 16 21 28 31 37 42 
+3 9 14 16 21 28 33 39 41 
+1 10 13 17 25 28 31 39 42 
+2 10 13 16 22 27 32 38 42 
+</PRE>
+
+<P>We commence with class <TT>41</TT> and create the following P and N example 
+sets and an PN array. The first column numbers for the PN array, presented,
+below gives the attribute
+label (1 to 40), the following two columns give the positive and negative
+total weightings for the P and N example sets respectively. On "start up"
+each attribute has a weighting of 1 associated with it; for example  
+attribute 1 occurs twice in P and four times in N.</P>
+
+<PRE>
+positiveExamples:
+ {1 8 13 17 21 27 31 36 41}  (1.0)
+ {1 8 13 17 21 28 31 36 41}  (1.0)
+ {2 8 14 16 21 27 31 36 41}  (1.0)
+ {3 8 11 16 21 28 31 36 41}  (1.0)
+ {2 8 14 16 21 28 31 36 41}  (1.0)
+ {3 9 14 16 21 28 33 39 41}  (1.0)
+
+negativeExamples:
+ {2 9 13 17 21 28 32 38 42}  (1.0)
+ {3 10 13 16 21 27 32 36 42}  (1.0)
+ {1 9 12 17 21 29 35 37 42}  (1.0)
+ {1 7 13 17 21 28 31 36 42}  (1.0)
+ {1 10 13 18 24 28 31 38 42}  (1.0)
+ {3 9 14 16 21 26 31 38 42}  (1.0)
+ {3 10 14 16 21 28 31 37 42}  (1.0)
+ {1 10 13 17 25 28 31 39 42}  (1.0)
+ {2 10 13 16 22 27 32 38 42}  (1.0)
+
+PN array
+Att 1: 	2.0 	4.0
+Att 2: 	2.0 	2.0
+Att 3: 	2.0 	3.0
+Att 4: 	0.0 	0.0
+Att 5: 	0.0 	0.0
+Att 6: 	0.0 	0.0
+Att 7: 	0.0 	1.0
+Att 8: 	5.0 	0.0
+Att 9: 	1.0 	3.0
+Att 10: 0.0 	5.0
+Att 11: 1.0 	0.0
+Att 12: 0.0 	1.0
+Att 13: 2.0 	6.0
+Att 14: 3.0 	2.0
+Att 15: 0.0 	0.0
+Att 16: 4.0 	4.0
+Att 17: 2.0 	4.0
+Att 18: 0.0 	1.0
+Att 19: 0.0 	0.0
+Att 20: 0.0 	0.0
+Att 21: 6.0 	6.0
+Att 22: 0.0 	1.0
+Att 23: 0.0 	0.0
+Att 24: 0.0 	1.0
+Att 25: 0.0 	1.0
+Att 26: 0.0 	1.0
+Att 27: 2.0 	2.0
+Att 28: 4.0 	5.0
+Att 29: 0.0 	1.0
+Att 30: 0.0 	0.0
+Att 31: 5.0 	5.0
+Att 32: 0.0 	3.0
+Att 33: 1.0 	0.0
+Att 34: 0.0 	0.0
+Att 35: 0.0 	1.0
+Att 36: 5.0 	2.0
+Att 37: 0.0 	2.0
+Att 38: 0.0 	4.0
+Att 39: 1.0 	1.0
+Att 40: 0.0 	0.0
+</PRE>
+
+<P>The positive set of examples (<TT>P</TT>) comprises six records.
+This means that the total weight of <TT>P</TT> is <TT>6.0</TT> and the
+Total Weight Threshold (TWT) is:</P>
+
+<PRE>
+TWT = totalWeight*TOTAL_WEIGHT_FACTOR
+    = 6.0*0.05 = 0.3
+</PRE>
+		     
+<P>The number of negative examples is
+9 (note that the latter will be constant for the class in question). We then 
+process the set P until its total weight falls below the threshold. On each
+iteration we first make copies of P, N, A and PN: P', N', A' and PN'. We then 
+calculate the gain (using threshold values) for each attribute if it were to 
+be added to the rule antecedent (which
+currently is empty) and place the resulting gains in the attributes array:<P>
+
+<PRE>
+Attributes:
+Col 1: 0.0 -0.36
+Col 2: 0.0 0.45
+Col 3: 0.0 0.0 
+Col 4: 0.0 0.0 
+Col 5: 0.0 0.0 
+Col 6: 0.0 0.0 
+Col 7: 0.0 0.0 
+Col 8: 0.0 4.58 
+Col 9: 0.0 -0.47
+Col 10: 0.0 0.0 
+Col 11: 0.0 0.92
+Col 12: 0.0 0.0 
+Col 13: 0.0 -0.94
+Col 14: 0.0 1.22
+Col 15: 0.0 0.0 
+Col 16: 0.0 0.89
+Col 17: 0.0 -0.36
+Col 18: 0.0 0.0 
+Col 19: 0.0 0.0 
+Col 20: 0.0 0.0 
+Col 21: 0.0 1.34
+Col 22: 0.0 0.0 
+Col 23: 0.0 0.0 
+Col 24: 0.0 0.0 
+Col 25: 0.0 0.0 
+Col 26: 0.0 0.0 
+Col 27: 0.0 0.45 
+Col 28: 0.0 0.42 
+Col 29: 0.0 0.0 
+Col 30: 0.0 0.0 
+Col 31: 0.0 1.12 
+Col 32: 0.0 0.0 
+Col 33: 0.0 0.92 
+Col 34: 0.0 0.0 
+Col 35: 0.0 0.0 
+Col 36: 0.0 2.90
+Col 37: 0.0 0.0 
+Col 38: 0.0 0.0 
+Col 39: 0.0 0.22
+Col 40: 0.0 0.0 
+</PRE>
+
+<P>As in the LUCS-KDD implementation of the FOIL algorithm the first digit 
+in the attributes 2-D array is set to 0.0 to indicate that the attribute is 
+available to be included in a rule (i.e. not already used in the current rule 
+antecedent) and the second to hold gain values when calculated. When an 
+attribute becomes "no longer available" the first digit will be set to 1.0. The 
+attribute array is used purely to enhance the computational efficiency of the 
+algorithm and serves no other purpose.</P>
+
+<P>If there were no gain above the user specified minimum we would add the rule
+sofar to the rule list. However there are attributes (see above) with a gain
+above the minimum of <TT>0.7</TT>. The attribute with the best gain is 
+attribute <TT>8</TT> (gain = >TT>4.58</TT>), this attribute is then added to 
+the rule antecedent <TT>8 -> 41</TT> and <TT>P'</TT> and <TT>N'</TT> adjusted 
+so that all examples which do not contain attribute 8 are removed and the 
+<TT>PN</TT> array adjusted accordingly. For example, considering attribute 
+<TT>1</TT>, no records containing this attribute are removed from <TT>P'</TT> 
+so the total positive weighting remains unchanged. However, four records 
+containing the attribute <TT>1</TT> are removed from <TT>N'</TT> thus the 
+negative weighting for attribute  <TT>1</TT> is reduced by <TT>4.0</TT> to 
+give <TT>0.0</TT>. In the LUCS-KDD the <TT>removeExDoNotSatRule</TT> method in
+the <TT>PRM_CARgen</TT> class is used to carry out the necessary adjustment
+of <TT>P'</TT> and <TT>N'</TT> and <TT>PN'</TT>.</P>
+
+<PRE>
+positiveExamples2:
+ {1 8 13 17 21 27 31 36 41} 
+ {1 8 13 17 21 28 31 36 41} 
+ {2 8 14 16 21 27 31 36 41} 
+ {3 8 11 16 21 28 31 36 41} 
+ {2 8 14 16 21 28 31 36 41} 
+
+negativeExamples2: Null
+
+PN array2:
+Att 1: 	2.0 	0.0
+Att 2: 	2.0 	0.0
+Att 3: 	1.0 	0.0
+Att 4: 	0.0 	0.0
+Att 5: 	0.0 	0.0
+Att 6: 	0.0 	0.0
+Att 7: 	0.0 	0.0
+Att 8: 	5.0 	0.0
+Att 9: 	0.0 	0.0
+Att 10: 0.0 	0.0
+Att 11: 1.0 	0.0
+Att 12: 0.0 	0.0
+Att 13: 2.0 	0.0
+Att 14: 2.0 	0.0
+Att 15: 0.0 	0.0
+Att 16: 3.0 	0.0
+Att 17: 2.0 	0.0
+Att 18: 0.0 	0.0
+Att 19: 0.0 	0.0
+Att 20: 0.0 	0.0
+Att 21: 5.0 	0.0
+Att 22: 0.0 	0.0
+Att 23: 0.0 	0.0
+Att 24: 0.0 	0.0
+Att 25: 0.0 	0.0
+Att 26: 0.0 	0.0
+Att 27: 2.0 	0.0
+Att 28: 3.0 	0.0
+Att 29: 0.0 	0.0
+Att 30: 0.0 	0.0
+Att 31: 5.0 	0.0
+Att 32: 0.0 	0.0
+Att 33: 0.0 	0.0
+Att 34: 0.0 	0.0
+Att 35: 0.0 	0.0
+Att 36: 5.0 	0.0
+Att 37: 0.0 	0.0
+Att 38: 0.0 	0.0
+Att 39: 0.0 	0.0
+Att 40: 0.0 	0.0
+</PRE>
+
+</FONT>
+</TD><TD><PRE> </PRE></TD><TD>
+<FONT SIZE=-1>
+
+<P><TT>N'</TT> is now empty, thus the rule <TT>8 -> 41</TT> is inserted into
+the rule list. We revise the weightings in <TT>P</TT> by the decay factor to 
+give a <TT>P</TT> example set of the form given below. Note that the weightings 
+for each record covered by the new rule has been reduced by <TT>2/3</TT> (the 
+decay factor).</P>
+
+<PRE>
+positiveExamples:
+ {1 8 13 17 21 27 31 36 41}  (0.33)
+ {1 8 13 17 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 27 31 36 41}  (0.33)
+ {3 8 11 16 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 28 31 36 41}  (0.33)
+ {3 9 14 16 21 28 33 39 41}  (1.0) 
+</PRE>
+
+<P>We also produce a new <TT>PN'</TT> copied from the revised <TT>PN</TT> 
+array produced when the new rule was discovered:</P>
+
+<PRE>
+PN array2:
+Att 1: 	0.67 	4.0
+Att 2: 	0.67 	2.0
+Att 3: 	1.33 	3.0
+Att 4: 	0.0 	0.0
+Att 5: 	0.0 	0.0
+Att 6: 	0.0 	0.0
+Att 7: 	0.0 	1.0
+Att 8: 	1.67 	0.0
+Att 9: 	1.0 	3.0
+Att 10: 0.0 	5.0
+Att 11: 0.33 	0.0
+Att 12: 0.0 	1.0
+Att 13: 0.67 	6.0
+Att 14: 1.67 	2.0
+Att 15: 0.0 	0.0
+Att 16: 2.0	4.0
+Att 17: 0.67 	4.0
+Att 18: 0.0 	1.0
+Att 19: 0.0 	0.0
+Att 20: 0.0 	0.0
+Att 21: 2.67 	6.0
+Att 22: 0.0 	1.0
+Att 23: 0.0 	0.0
+Att 24: 0.0 	1.0
+Att 25: 0.0 	1.0
+Att 26: 0.0 	1.0
+Att 27: 0.67 	2.0
+Att 28: 2.0 	5.0
+Att 29: 0.0 	1.0
+Att 30: 0.0 	0.0
+Att 31: 1.67 	5.0
+Att 32: 0.0 	3.0
+Att 33: 1.0 	0.0
+Att 34: 0.0 	0.0
+Att 35: 0.0 	1.0
+Att 36: 1.67 	2.0
+Att 37: 0.0 	2.0
+Att 38: 0.0 	4.0
+Att 39: 1.0 	1.0
+Att 40: 0.0 	0.0
+</PRE>
+
+<P>The total weight threshold for <TT>P</TT> is now <TT>2.67</TT>, 
+above the minimum threshold of <TT>0.3</TT>, so we repeat the process with the 
+revised example sets <TT>P'</TT> (copied from the revised version of 
+<TT>P</TT>) and <TT>N'</TT> (copied from the orginal <TT>N</TT>):</P>
+
+<PRE>
+positiveExamples2:
+ {1 8 13 17 21 27 31 36 41}  (0.33)
+ {1 8 13 17 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 27 31 36 41}  (0.33)
+ {3 8 11 16 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 28 31 36 41}  (0.33)
+ {3 9 14 16 21 28 33 39 41}  (1.0)
+
+negativeExamples2:
+ {2 9 13 17 21 28 32 38 42}  (1.0)
+ {3 10 13 16 21 27 32 36 42}  (1.0)
+ {1 9 12 17 21 29 35 37 42}  (1.0)
+ {1 7 13 17 21 28 31 36 42}  (1.0)
+ {1 10 13 18 24 28 31 38 42}  (1.0)
+ {3 9 14 16 21 26 31 38 42}  (1.0)
+ {3 10 14 16 21 28 31 37 42}  (1.0)
+ {1 10 13 17 25 28 31 39 42}  (1.0)
+ {2 10 13 16 22 27 32 38 42}  (1.0)
+</PRE>
+
+<P>we also create an empty attributes array <TT>A'</TT> (by copying 
+<TT>A</TT>). As before we then calculate all gains for 
+each attribute (and store in the attributes array):</P>
+
+<PRE>
+Attributes:
+Col 1: 0.0 0.0 
+Col 2: 0.0 0.0 
+Col 3: 0.0 -0.35 
+Col 4: 0.0 0.0 
+Col 5: 0.0 0.0 
+Col 6: 0.0 0.0 
+Col 7: 0.0 0.0 
+Col 8: 0.0 1.53 
+Col 9: 0.0 -0.47 
+Col 10: 0.0 0.0 
+Col 11: 0.0 0.0 
+Col 12: 0.0 0.0 
+Col 13: 0.0 0.0 
+Col 14: 0.0 0.21 
+Col 15: 0.0 0.0 
+Col 16: 0.0 -0.36 
+Col 17: 0.0 0.0 
+Col 18: 0.0 0.0 
+Col 19: 0.0 0.0 
+Col 20: 0.0 0.0 
+Col 21: 0.0 -0.7 
+Col 22: 0.0 0.0 
+Col 23: 0.0 0.0 
+Col 24: 0.0 0.0 
+Col 25: 0.0 0.0 
+Col 26: 0.0 0.0 
+Col 27: 0.0 0.0 
+Col 28: 0.0 -0.67 
+Col 29: 0.0 0.0 
+Col 30: 0.0 0.0 
+Col 31: 0.0 -0.78 
+Col 32: 0.0 0.0 
+Col 33: 0.0 0.92 
+Col 34: 0.0 0.0 
+Col 35: 0.0 0.0 
+Col 36: 0.0 0.21 
+Col 37: 0.0 0.0 
+Col 38: 0.0 0.0 
+Col 39: 0.0 0.22 
+Col 40: 0.0 0.0 
+</PRE>
+
+<P>The attribute with the best gain is attribute <TT>8</TT>
+(gain = <TT>1.53</TT>). Note that this is the same attribute as discovered
+on the previous iteration --- it is quite possible to generate the same rule
+more than once using PRM. This is then added to the rule antecedent 
+(<TT>8->41</TT>) and <TT>P'</TT> and <TT>N'</TT> adjusted so that all examples 
+which do not contain attribute <TT>8</TT> are removed
+and <TT>PN'</TT> adjusted accordingly:</P>
+
+<PRE>
+positiveExamples2:
+ {1 8 13 17 21 27 31 36 41}  (0.33)
+ {1 8 13 17 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 27 31 36 41}  (0.33)
+ {3 8 11 16 21 28 31 36 41}  (0.33)
+ {2 8 14 16 21 28 31 36 41}  (0.33)
+
+negativeExamples2: null
+
+PN array2:
+Att 1: 	0.67 	0.0
+Att 2: 	0.67 	0.0
+Att 3: 	0.333 	0.0
+Att 4: 	0.0 	0.0
+Att 5: 	0.0 	0.0
+Att 6: 	0.0 	0.0
+Att 7: 	0.0 	0.0
+Att 8: 	1.67 	0.0
+Att 9: 	0.0 	0.0
+Att 10: 0.0 	0.0
+Att 11: 0.33 	0.0
+Att 12: 0.0 	0.0
+Att 13: 0.67 	0.0
+Att 14: 0.67 	0.0
+Att 15: 0.0 	0.0
+Att 16: 1.0 	0.0
+Att 17: 0.67 	0.0
+Att 18: 0.0 	0.0
+Att 19: 0.0 	0.0
+Att 20: 0.0 	0.0
+Att 21: 1.67 	0.0
+Att 22: 0.0 	0.0
+Att 23: 0.0 	0.0
+Att 24: 0.0 	0.0
+Att 25: 0.0 	0.0
+Att 26: 0.0 	0.0
+Att 27: 0.67 	0.0
+Att 28: 1.0 	0.0
+Att 29: 0.0 	0.0
+Att 30: 0.0 	0.0
+Att 31: 1.67 	0.0
+Att 32: 0.0 	0.0
+Att 33: 0.0 	0.0
+Att 34: 0.0 	0.0
+Att 35: 0.0 	0.0
+Att 36: 1.67 	0.0
+Att 37: 0.0 	0.0
+Att 38: 0.0 	0.0
+Att 39: 0.0 	0.0
+Att 40: 0.0 	0.0
+</PRE>
+
+<P><TT>N' is now empty so the rule <TT>8->41</TT> is (again) inserted in to the 
+rule list (duplicates are removed in the LUVS-KDD implementaion during 
+<A HREF = "#pruning">pruning</A>) and the weightings in <TT>P</TT> and 
+<TT>PN</TT> array adjusted 
+accordingly. The total weight threshold for <TT>P is now <TT>1.56</TT>, above 
+the minimum threshold of <TT>0.3</TT>, so we repeat the process with the 
+revised Example sets <TT>P'</TT> and <TT>N'</TT> and an adjusted <TT>PN</TT> 
+array</P>
+
+<P>On the next iteration the attribute with the best gain is now <TT>33</TT> 
+(gain = <TT>0.92</TT>) so we add this to the current rule's antecedent 
+<TT>33->41</TT> and repeat. On the next iteration the best gain is below the 
+threshold so we then add the rule to the rule list.</P>
+
+<P>The total weighting for P has now been reduced to <TT>0.89</TT>, still
+above <TT>0.3</TT>, however there are no attributes which can produce a gain in 
+excess of the required minimum thus we stop generating rules for class 
+<TT>41</TT> and repeat the process for class <TT>42</TT>.</P> 
+
+<P>At the end of the process we will have the following rule list. Note that
+rules are inserted into the rule list, as they are derived according to their
+calculate Laplace accuracy (derived according to each rules Laplace expected 
+error estimate).</P>
+
+<PRE>
+(1)  {8}   ->  {41}  0.86%
+(2)  {10}  ->  {42}  0.86%
+(3)  {38}  ->  {42}  0.83%
+(4)  {33}  ->  {41}  0.67%
+</PRE>
+</FONT>
+</TD></TABLE>
+
+<br><hr><br>
+<A name = "conclusions">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">5. CONCLUSSIONS</font></h2></td>
+</table> <BR>
+
+<P>The LUCS-KDD implementation of PRM described here has been use by the 
+LUCS-KDD reseach group to contrast and compare a variety of CARM algorithms 
+and techniques. The software is available free of charge, however the author 
+would appreciate appropriate acknowledgement. The following reference format 
+for referring to the software is suggested:</P>
+
+<P>Coenen, F. (2004), <I>LUCS-KDD implementations of PRM
+(Predictive Rule Mining)</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/prm.html,
+Department of Computer Science, The University of Liverpool, UK.</P>
+
+<P>Should you discover any "bugs" or other problems within the software (or this 
+documentation), do not hesitate to contact 
+the author.</P>
+
+<BR><HR><BR>
+<H1>REFERENCES</H1>
+<OL>
+<LI>Clark, P. and Boswell. R. (1991).
+<I>Rule Induction With CN2: Some Recent Improvements.</I>
+Proc. European Working Session on Learning (ESWL'91), Porto, Portugal.
+pp151-163.
+<LI>Quinlan, J. R. and Cameron-Jones, R. M. (1993).
+<I>FOIL: A Midterm Report.</I>
+Proc. ECML, Vienna, Austria, pp3-20.
+<LI>Yin, X. and Han, J. (2003).
+<I>CPAR: Classification based on Predictive Association Rules.<I>
+Proc. SIAM Int. Conf. on Data Mining (SDM'03), San Fransisco, CA, pp. 331-335.
+</OL>
+
+<BR><HR><BR>
+<P>Created and maintained by
+<A HREF=http://www.csc.liv.ac.uk/~frans/>Frans Coenen</A>.
+<!--#config timefmt="%d %B %Y"-->Last updated <!--#echo var="LAST_MODIFIED"-->
+</BODY>
+</HTML>
+

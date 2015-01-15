@@ -1,0 +1,536 @@
+<HTML>
+<HEAD>
+<TITLE>FOIL</TITLE>
+</HEAD><BODY BGCOLOR="white">
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="100%">
+<TR><TD BGCOLOR = BB0000>
+<CENTER><TABLE BORDER = 0 cellpadding = 10 WIDTH="90%">
+<TR><TD BGCOLOR = 006699>
+<FONT COLOR = "white">
+<CENTER>
+<H1>THE LUCS-KDD IMPLEMENTATIONS OF FOIL (FIRST ORDER INDUCTIVE LEARNER)</H1>
+<HR WIDTH=<50%">
+<P><B><I>Frans Coenen<I></B></P>
+<P><B>Department of Computer Science</B></P>
+<P><B>The University of Liverpool</B></P>
+<P>13 February 2004</P>
+</CENTER>
+</FONT></TD>
+</TABLE></CENTER>
+</TD></TABLE>
+</CENTER><BR>
+
+<P><B>DISCLAMER!</B> The following description of the FOIL algorithm is that
+implemented by the author of this WWW page, i.e. it may not be identical
+to that first produced by Ross Quinlan but certainly displays all the "saliant"
+features.</P>
+
+<H2>CONTENTS</H2>
+
+<TABLE BORDER=0 CELLPADDING=0 WIDTH=100%>
+<TR><TD WIDTH="48%">
+<DL>
+<DT>1. <A HREF = "#overview">Overview of FOIL algorithm</A>.</DT>
+<DT>2. <A HREF = "#pruning">Rule pruning</A>.</DT>
+</DL>
+</TD><TD><PRE> </PRE></TD><TD>
+<DL>
+<DT>3. <A HREF = "#testing">Testing</A>.</DT>
+<DT>4. <A HREF = "#example">Worked Example</A>.</DT>
+<DT>5. <a HREF =" #conclusions">Conclusions</A>.</DT>
+</TD></TABLE>
+<BR>
+
+<P><B>Note</B>: A C implementation of Foil (by Ross Quinlan and
+Mike Cameron-Jones) is available by anonymous ftp from <TT>ftp.cs.su.oz.au</TT>,
+file <TT>pub/foil6.sh</TT>.</P>
+
+<BR><HR><BR>
+<A NAME = "overview">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">1. OVERVIEW OF FOIL ALGORITHM</font></H2></TD>
+</TABLE><BR>
+
+<P>The FOIL algorithm (Quinlan and Cameron-Jones 1993) takes as input a 
+(space separated) <I>binary valued</I> data set <TT>R</TT> and produces a set of
+CARs. The resulting classifier,
+as genertaed by the LUCS-KDD FOIL algorithm described here, comprises a
+linked-list of rules ordered according
+to their Laplace accuracy (Clark and Boswell 1991).</P>
+
+<P>The FOIL algorithm commences by, for each class in <TT>C</TT> (the set of
+classes), producing two arrays of
+<I>positive</I> (<TT>P</TT>) and <I>negative</I> (<TT>N</TT>) example records. 
+Thus given a data set of the form:</P>
+
+<PRE>
+1 2 5
+1 5
+2 5
+3 4 6
+3 6
+4 6
+</PRE>
+
+<P>for the class <TT>5</TT> we would generate the following
+<TT>P</TT> and <TT>N</TT> arrays:<P>
+
+<PRE>
+P = {{1,2,5}{1,5},{2,5}}
+N = {{3,4,6},{3,6},{4,6}}
+</PRE>
+
+<P>Note that <TT>R = P union N</TT>. The LUCS-KDD implementation of the FOIL
+algorithm also makes use of a 2-D <I>attribute array</I> (<TT>A</TT>). The
+coulumns (first indexes) of <TT>A</TT> represent attribute numbers (from
+<TT>1</TT> to <TT>D</TT>).
+The first row of <TT>A</TT> (second index equals
+<TT>0</TT>) is an indicator set to <TT>0</TT> if the
+attribute has not yet been considered for inclussion in the antecedent of the
+current rule under consideration, and <TT>1</TT> otherwise.
+The second row of <TT>A</TT>
+(second index equals <TT>1</TT>) is used to store gains (see below).
+Throughout the generation process copies of <TT>P</TT>, <TT>N</TT> and
+<TT>A</TT> (<TT>P'</TT>, <TT>N'</TT> and <TT>A'</TT>) are continuously
+revised.</P>
+
+<P>Rules are built up by repeatedly adding an attribute to the antecedent of a
+current rule (commencing with an empty antecedent) according to the <I>gain</I>
+measure.</P>
+
+<P>The LUCS-KDD implementation can broadly be described in Table 1.</P>
+
+<CENTER><TABLE BORDER=1 CELLPADDING="10"><TR><TD>
+<PRE>
+method: startFOIL
+Parameters: none
+Global access to: R, C
+----------------------------------------------
+
+generate an empty global attributes array A
+For each c in C
+    generate global P and N example arrays
+    while P != {}
+        N'<--N, P'<--P, A'<--A
+	if no attributes exist that can produce a gain
+				above minimum break
+	foilGeneration({},c);
+    end loop
+end loop
+</PRE>
+</TD></TABLE><P><B>Table 1</B>: <I>The</I> <TT>startFOIL</TT> <I>method.</I></P>
+</CENTER>
+
+<P>The <TT>foilGeneration/2</TT> method recursively adds attributes to the
+antecedent of a proposed rule until either:<P>
+
+<OL type="i">
+<LI>The effect of adding another attribute has no positive influence on the
+classifier (this is measured in terms of <I>gain</I>).
+<LI>A user specified maximum size (<TT>MAX_NUM_ATTS_IN_ANTECEDENT</TT>) for the antecedent has
+been reached.
+<LI>The negative example set (<TT>N'</TT>) has been reduced to <TT>{}</TT>.
+</OL>
+
+<P>The method is recursive and has two argument: the antecedent so
+far and the class. The method is described in Table 2.</P>
+
+<CENTER><TABLE BORDER=1 CELLPADDING="10"><TR><TD>
+<PRE>
+method: foilGeneration(ante, cons)
+Input: parameters ante (antecedent so far) and
+	cons (consequent) for current rule.
+Access to: A, A', N, N', P and P'
+-------------------------------------------------
+
+for each a in A
+    if (a not in antecedent<SUP>1</SUP>) calculated gain 
+    				and store in A
+end loop
+i = "available" column in A with best gain
+if (A[i][0] <= MIN_BEST_GAIN) 
+    add antecedent->c to rule list
+    for all records in P reduce weighting by decay factor
+     		and adjust PN array accordingly
+    return
+
+
+ante = ante union i
+A'[i][1]=1 (i.e. column i is no longer "available")
+remove records in P' and N' which DO NOT contain attribute ante
+		
+if (|ante] >= MAX_NUM_ATTS_IN_ANTECEDENT or N'=={})
+    add rule (ante -> cons) to rule list
+    remove records from P that contain ante
+    return
+else  foilGeneration(ante, cons)	
+</PRE>
+</TD></TABLE><P><B>Table 2</B>: <I>The</I> <TT>foilGenerastion</TT> <I>method.</I></P>
+<P><FONT SIZE="-1">1. An attribute is not in the antecedent if the appropriate 
+cell in the attributes array  has the value <TT>0</TT>.</FONT></P>
+</CENTER>
+
+<P><B>NOTES</B>:</P>
+<OL>
+<LI>
+An attribute is not in the antecedent (<TT>ante</TT>) if the appropriate
+cell in the attributes array (<TT>A</TT>) has the value <TT>0</TT>.
+<LI>In experiments <TT>MAX_LENGTH</TT> has typically been set to <TT>4</TT>,
+and <TT>MIN_GAIN</TT> to <TT>0.7</TT>.
+<LI>Gain is calculated as follows:
+</OL>
+
+<CENTER>
+<PRE>
+gain(a) = |P'| (log(|P'|/|P'|+|N'|) - log(|P|/|P|+|N|))
+</PRE>
+</CENTER>
+
+<BR><HR><BR>
+<A NAME = "pruning">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">2. RULE PRUNING</font></H2></TD>
+</TABLE><BR>
+
+<P>Unlike many other CARM algorithms FOIL does not include any rule pruning
+phase. This is because FOIL generates a small number of rules --- each 
+record in the training set may be covered by only one rule in the
+classifier.</P>
+
+<BR><HR><BR>
+<A NAME = "testing">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">3. TESTING</font></H2></TD>
+</TABLE><BR>
+
+<P>During testing, for each record in the test sets (as recommended in Yin and
+Han 2003) the record is classified using the following procedure:</P>
+
+<OL>
+<LI>Obtain all rules whose antecedent is a subset of the given record.
+<LI>Select the best <TT>K</TT> rules for each class according to their Laplace
+accuarcy. In experiments <TT>K</TT> was set to <TT>5</TT>).
+<LI>Determine the average expected accuracy over the selected rules for each
+class
+<LI>Select the class with the best average expected accuracy.
+</OL>
+
+<BR><HR><BR>
+<A NAME = "example">
+<TABLE BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<TR><TD><H2><font color = "white">4. WORKED EXAMPLE</font></H2></TD>
+</TABLE>
+
+<TABLE>
+<TR><TD>
+<FONT SIZE=-1>
+<P>Given the following data set (first 15 lines from the pima indian set):</P>
+
+<PRE>
+2 9 13 17 21 28 32 38 42 
+1 8 13 17 21 27 31 36 41 
+3 10 13 16 21 27 32 36 42 
+1 8 13 17 21 28 31 36 41 
+1 9 12 17 21 29 35 37 42 
+2 8 14 16 21 27 31 36 41 
+1 7 13 17 21 28 31 36 42 
+3 8 11 16 21 28 31 36 41 
+1 10 13 18 24 28 31 38 42 
+3 9 14 16 21 26 31 38 42 
+2 8 14 16 21 28 31 36 41 
+3 10 14 16 21 28 31 37 42 
+3 9 14 16 21 28 33 39 41 
+1 10 13 17 25 28 31 39 42 
+2 10 13 16 22 27 32 38 42 
+</PRE>
+
+<P>We commence with class <TT>41</TT> and create the following P and N sets 
+and the attribute array A. Column numbers in the attributes array indicate
+attribute labels 1 to 40.</P>
+
+<PRE>
+positiveExamples:
+ {1 8 13 17 21 27 31 36 41}
+ {1 8 13 17 21 28 31 36 41}
+ {2 8 14 16 21 27 31 36 41}
+ {3 8 11 16 21 28 31 36 41}
+ {2 8 14 16 21 28 31 36 41}
+ {3 9 14 16 21 28 33 39 41}
+
+negativeExamples:
+ {2 9 13 17 21 28 32 38 42}
+ {3 10 13 16 21 27 32 36 42}
+ {1 9 12 17 21 29 35 37 42}
+ {1 7 13 17 21 28 31 36 42}
+ {1 10 13 18 24 28 31 38 42}
+ {3 9 14 16 21 26 31 38 42}
+ {3 10 14 16 21 28 31 37 42}
+ {1 10 13 17 25 28 31 39 42}
+ {2 10 13 16 22 27 32 38 42}
+
+attributes:
+Col 1: 0.0 0.0
+Col 2: 0.0 0.0
+Col 3: 0.0 0.0
+Col 4: 0.0 0.0
+Col 5: 0.0 0.0
+Col 6: 0.0 0.0
+Col 7: 0.0 0.0
+Col 8: 0.0 0.0
+Col 9: 0.0 0.0
+Col 10: 0.0 0.0
+Col 11: 0.0 0.0
+Col 12: 0.0 0.0
+Col 13: 0.0 0.0
+Col 14: 0.0 0.0
+Col 15: 0.0 0.0
+Col 16: 0.0 0.0
+Col 17: 0.0 0.0
+Col 18: 0.0 0.0
+Col 19: 0.0 0.0
+Col 20: 0.0 0.0
+Col 21: 0.0 0.0
+Col 22: 0.0 0.0
+Col 23: 0.0 0.0
+Col 24: 0.0 0.0
+Col 25: 0.0 0.0
+Col 26: 0.0 0.0
+Col 27: 0.0 0.0
+Col 28: 0.0 0.0
+Col 29: 0.0 0.0
+Col 30: 0.0 0.0
+Col 31: 0.0 0.0
+Col 32: 0.0 0.0
+Col 33: 0.0 0.0
+Col 34: 0.0 0.0
+Col 35: 0.0 0.0
+Col 36: 0.0 0.0
+Col 37: 0.0 0.0
+Col 38: 0.0 0.0
+Col 39: 0.0 0.0
+Col 40: 0.0 0.0
+</PRE>
+
+<P>The number of positive examples is 6 and the number of negative examples is
+9 (note that the latter will be constant for the class in question). We then 
+process the set P until it is empty. First we make copies of P, N and A:
+P', N' and A'. We then claculate
+the gain for each attribute were it to be added to the rule antecedent (which
+currently is empty) and place the resulting gains in the attributes array. 
+The result is as follows:<P>
+
+<PRE>
+Col 0: 0.0 0.0 
+Col 1: 0.0 -0.3646431135879096 
+Col 2: 0.0 0.4462871026284194 
+Col 3: 0.0 0.0 
+Col 4: 0.0 0.0 
+Col 5: 0.0 0.0 
+Col 6: 0.0 0.0 
+Col 7: 0.0 0.0 
+Col 8: 0.0 4.581453659370775 
+Col 9: 0.0 -0.4700036292457356 
+Col 10: 0.0 0.0 
+Col 11: 0.0 0.916290731874155 
+Col 12: 0.0 0.0 
+Col 13: 0.0 -0.9400072584914712 
+Col 14: 0.0 1.216395324324493 
+Col 15: 0.0 0.0 
+Col 16: 0.0 0.8925742052568388 
+Col 17: 0.0 -0.3646431135879096 
+Col 18: 0.0 0.0 
+Col 19: 0.0 0.0 
+Col 20: 0.0 0.0 
+Col 21: 0.0 1.3388613078852583 
+Col 22: 0.0 0.0 
+Col 23: 0.0 0.0 
+Col 24: 0.0 0.0 
+Col 25: 0.0 0.0 
+Col 26: 0.0 0.0 
+Col 27: 0.0 0.4462871026284194 
+Col 28: 0.0 0.4214420626313049 
+Col 29: 0.0 0.0 
+Col 30: 0.0 0.0 
+Col 31: 0.0 1.1157177565710485 
+Col 32: 0.0 0.0 
+Col 33: 0.0 0.916290731874155 
+Col 34: 0.0 0.0 
+Col 35: 0.0 0.0 
+Col 36: 0.0 2.899092476264711 
+Col 37: 0.0 0.0 
+Col 38: 0.0 0.0 
+Col 39: 0.0 0.2231435513142097 
+Col 40: 0.0 0.0 
+</PRE>
+
+</FONT>
+</TD><TD><PRE> </PRE></TD><TD>
+<FONT SIZE=-1>
+
+<P>The first digit is set to 0.0 to indicate that the attribute is available to
+be included in a rule (i.e. not already in the current rule antecedent) and the
+second to hold gain values when calculated. When an attribute becomes no longer
+available the first digit will be set to 1.0. The attribute array is used 
+purely to enhance the computational efficiency of the algorithm.</P>
+
+<P>If there were no gain above the user specified minimum we would add the rule
+sofar to the ruke list. However there are attributes with a gain above the
+minimum. The attribute with the best gain is attribute 8
+(gain = 4.581453659370775), this attribute is then added to the rule antecedent 
+<TT>8 -> 41</TT> and P' and N' adjusted so that all examples which do not 
+contain attribute 8 are removed:</P>
+
+<PRE>
+positiveExamples2:
+ {1 8 13 17 21 27 31 36 41} 
+ {1 8 13 17 21 28 31 36 41} 
+ {2 8 14 16 21 27 31 36 41} 
+ {3 8 11 16 21 28 31 36 41} 
+ {2 8 14 16 21 28 31 36 41} 
+
+negativeExamples2: Null
+</PRE>
+
+<P>As there are no more negative examples thus we add the rule <TT>8 -> 41</TT>
+to the rule list and remove all examples from P (NOT P') that satisfy the rule.
+This will leave:</P>
+
+<PRE>
+positiveExamples:
+ {3 9 14 16 21 28 33 39 41} 
+</PRE>
+
+<P>Because P is not empty we loop round again to try and find another rule for
+the class 41. The number of positive examples is now 1 and the number of 
+negative examples is 9 (remember that the latter will be 
+constant for the class in question). We again make copies of (the revised) P 
+and original N sets of examples to give P' and N', and  we again create an 
+empty attributes array A' (by copying A). We, as before, 
+calculate all gains for each attaribute (and store in the attributes array).</P>
+
+<PRE>
+Col 1: 0.0 0.0
+Col 2: 0.0 0.0
+Col 3: 0.0 0.9162907318741549
+Col 4: 0.0 0.0
+Col 5: 0.0 0.0
+Col 6: 0.0 0.0
+Col 7: 0.0 0.0
+Col 8: 0.0 0.0
+Col 9: 0.0 0.9162907318741549
+Col 10: 0.0 0.0
+Col 11: 0.0 0.0
+Col 12: 0.0 0.0
+Col 13: 0.0 0.0
+Col 14: 0.0 1.2039728043259357
+Col 15: 0.0 0.0
+Col 16: 0.0 0.6931471805599452
+Col 17: 0.0 0.0
+Col 18: 0.0 0.0
+Col 19: 0.0 0.0
+Col 20: 0.0 0.0
+Col 21: 0.0 0.356674943938732
+Col 22: 0.0 0.0
+Col 23: 0.0 0.0
+Col 24: 0.0 0.0
+Col 25: 0.0 0.0
+Col 26: 0.0 0.0
+Col 27: 0.0 0.0
+Col 28: 0.0 0.5108256237659905
+Col 29: 0.0 0.0
+Col 30: 0.0 0.0
+Col 31: 0.0 0.0
+Col 32: 0.0 0.0
+Col 33: 0.0 2.3025850929940455
+Col 34: 0.0 0.0
+Col 35: 0.0 0.0
+Col 36: 0.0 0.0
+Col 37: 0.0 0.0
+Col 38: 0.0 0.0
+Col 39: 0.0 1.6094379124341
+Col 40: 0.0 0.0
+</PRE>
+
+<P>The attribute with the best gain is attribute 33 (gain = 2.3025850929940455)
+this is then added to the rule antecedent <TT>33 -> 41</TT> and P' and N'
+adjusted so that all examples which do not contain attribute 8 are removed:</P>
+
+<PRE>
+positiveExamples2:
+ {3 9 14 16 21 28 33 39 41}
+
+negativeExamples2: Null
+</PRE>
+
+<P>There are no more negative examples thus we add the rule <TT>33 -> 41</TT> 
+to the rule list and remove all examples from P (NOT P') that satisfy the rule.
+This weill leave:</P>
+
+<PRE>
+positiveExamples: Null
+</PRE>
+
+<P>The example set P is empty so we do not calculate any more rules. We thus go
+om to the second class 42 and proceed in the same manner.</P>
+
+<P>At the end of the process we will have the following rule list. Note that
+rules are inserted into the rule list, as they are derrived according to their
+calculate Laplace accuracy (dervied according to each rules Laplace expected 
+error estimate).</P>
+
+<PRE>
+(1)  {8}  ->  {41}  0.8571428571428571%
+(2)  {10}  ->  {42}  0.8571428571428571%
+(3)  {33}  ->  {41}  0.6666666666666666%
+(4)  {9}  ->  {42}  0.6666666666666666%
+(5)  {7}  ->  {42}  0.6666666666666666%
+</PRE>
+</FONT>
+</TD></TABLE>
+
+<br><hr><br>
+<A name = "conclusions">
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">5. CONCLUSSIONS</font></h2></td>
+</table> <BR>
+
+<P>The LUCS-KDD implementation of FOIL described here has been use by the 
+LUCS-KDD reseach group to contrast and compare a variety of CARM algorithms 
+and techniques. The software is available free of charge, however the author 
+would appreciate appropriate acknowledgement. The following reference format 
+for referring to the software is suggested:</P>
+
+<P>Coenen, F. (2004), <I>LUCS-KDD implementations of FOIL
+(First Order Inductive Learner)</I>,
+http://www.cxc.liv.ac.uk/~frans/KDD/Software/FOIL_PRM_CPAR/foil.html,
+Department of Computer Science, The University of Liverpool, UK.</P>
+
+<P>Should you discover any "bugs" or other problems within the software (or this 
+documentation), do not hesitate to contact 
+the author.</P>
+
+<br><hr><br>
+<table BORDER-=0 WIDTH="100%" CELLPADDING=5 BGCOLOR="006699">
+<tr><td><h2><font color =" white">REFERENCES</font></h2></td>
+</table> <BR>
+
+<OL>
+<LI>Clark, P. and Boswell. R. (1991).
+<I>Rule Induction With CN2: Some Recent Improvements.</I>
+Proc. European Working Session on Learning (ESWL'91), Porto, Portugal.
+pp151-163.
+<LI>Quinlan, J. R. and Cameron-Jones, R. M. (1993).
+<I>FOIL: A Midterm Report.</I>
+Proc. ECML, Vienna, Austria, pp3-20.
+<LI>Yin, X. and Han, J. (2003).
+<I>CPAR: Classification based on Predictive Association Rules.<I>
+Proc. SIAM Int. Conf. on Data Mining (SDM'03), San Fransisco, CA, pp. 331-335.
+</OL>
+
+<BR><HR><BR>
+<P>Created and maintained by
+<A HREF=http://www.csc.liv.ac.uk/~frans/>Frans Coenen</A>.
+<!--#config timefmt="%d %B %Y"-->Last updated <!--#echo var="LAST_MODIFIED"-->
+</BODY>
+</HTML>
+
