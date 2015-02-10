@@ -653,10 +653,55 @@ public class AssocRuleMining extends JFrame {
 		    }
 	        else System.out.print(" ");
 	        System.out.print(itemSet[index]);
+	        try {
+        		if(itemSet[index]<=70){
+        			System.out.print(" "+getAntecedantName(itemSet[index]));
+        		}
+        		else{
+        			System.out.print(" "+getConsequentName(itemSet[index]));
+        		}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	    System.out.print("} ");
 	    }
 	}
+    
+public String getAntecedantName(short antecedantNumber) throws IOException{
+    	
+    	String antecedantName = null;
+    	File file2 = new File("relation.txt");
+        FileInputStream f2 = new FileInputStream(file2);
+        ObjectInputStream s2 = new ObjectInputStream(f2);
+        try {
+			HashMap<String, Object> fileObj2 = (HashMap<String, Object>) s2.readObject();
+				antecedantName = (String) fileObj2.get(Short.toString(antecedantNumber));
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        s2.close();
+    	return antecedantName;
+    }
+
+public String getConsequentName(short consequentNumber) throws IOException{
+	
+	String consequentName = null;
+	File file2 = new File("produitRelations.txt");
+    FileInputStream f2 = new FileInputStream(file2);
+    ObjectInputStream s2 = new ObjectInputStream(f2);
+    try {
+		HashMap<String, Object> fileObj2 = (HashMap<String, Object>) s2.readObject();
+			consequentName = (String) fileObj2.get(Short.toString(consequentNumber));
+	} catch (ClassNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+    s2.close();
+	return consequentName;
+}
 	
     /* ---------------------- */		
     /* OUTPUT DATA ARRAY SIZE */

@@ -3092,7 +3092,7 @@ public class AssocRuleMining extends JFrame {
 	        	else System.out.print(" ");
 	        	System.out.print(tempItemSet[index]);
 	        	try {
-	        		if(tempItemSet[index]<=100){
+	        		if(tempItemSet[index]<=70){
 	        			System.out.print(" "+getAntecedantName(tempItemSet[index]));
 	        		}
 	        		else{

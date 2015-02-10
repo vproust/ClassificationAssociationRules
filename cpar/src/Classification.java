@@ -312,7 +312,7 @@ public class Classification extends AssocRuleMining {
     	
     public void createTrainingAndTestDataSets() {
         // Determine size of training and test sets.
-	final double PERCENTAGE_SIZE_OF_TEST_SET = 50.0;
+	final double PERCENTAGE_SIZE_OF_TEST_SET = 1.0;
         numRowsInTestSet     = (int) ((double) numRows*
 					PERCENTAGE_SIZE_OF_TEST_SET/100.0);
 	numRowsInTrainingSet = numRows-numRowsInTestSet;

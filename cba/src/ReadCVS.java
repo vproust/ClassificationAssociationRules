@@ -24,7 +24,7 @@ public class ReadCVS{
  
   public void run() {
  
-	String csvFile = "./dataPV.csv";
+	String csvFile = "./pineauCabernetPV.csv";
 	BufferedReader br = null;
 	String line = "";
 	String cvsSplitBy = ";";
@@ -35,11 +35,11 @@ public class ReadCVS{
  
 	try {
 		// On considère qu'il y a moins de 150 produits
-		String[] produitsPourCBA = new String[150];		
+		String[] produitsPourCBA = new String[1300];		
 		br = new BufferedReader(new FileReader(csvFile));
 		int numeroMolecule =1;
 		String precProduit = new String();
-		int numeroProduit = 100;
+		int numeroProduit = 70;
 		PrintWriter writer = new PrintWriter("output.num", "UTF-8");
 		
 		String headerLine = br.readLine();
@@ -55,7 +55,8 @@ public class ReadCVS{
 		while ((line = br.readLine()) != null) {
 		     // use comma as separator
 			String[] molecules = line.split(cvsSplitBy);
-			produitsPourCBA[numeroMolecule] = new String();		
+			System.out.println(numeroMolecule);
+			produitsPourCBA[numeroMolecule] = new String();
 			
 			for(int i=0;i< molecules.length;i++){
 				if(molecules[i].equals("1")){
@@ -87,14 +88,15 @@ public class ReadCVS{
         s2.writeObject(produitsRelation);
         s2.close();
         
-        File file3 = new File("relation.txt");
+        File file3 = new File("produitRelations.txt");
         FileInputStream f3 = new FileInputStream(file3);
         ObjectInputStream s3 = new ObjectInputStream(f3);
+
         
         
         try {
 			HashMap<String, Object> fileObj2 = (HashMap<String, Object>) s3.readObject();
-				System.out.println("produit "+fileObj2.get("48"));			
+			System.out.println("produit "+fileObj2.get("72"));			
 			
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
